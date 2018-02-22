@@ -1,40 +1,27 @@
-package anirad
+package agqr
 
 import (
 	"fmt"
 	"os/exec"
+	"os/user"
+	"strings"
 )
-
-var (
-	warnAGQRunsupported = fmt.Errorf(`AGQR only supports play and download`)
-)
-
-type agqr struct{}
-
-func (rad *agqr) List() ([]string, error) {
-	return nil, fmt.Errorf("agqr only supports play and download")
-}
-
-func (rad *agqr) GetProgram(name string) (*program, error) {
-	return nil, fmt.Errorf("agqr only supports play and download")
-}
-
-func (rad *agqr) GetURL(name string) (string, error) {
-	return "", fmt.Errorf("agqr only supports play and download")
-}
 
 func (rad *agqr) Download(url, fileout string) error {
 	// url is not used
-	fileout = parseFilepath(fileout)
-	if exists(fileout) {
-		return errFileExists
+	usr, err := user.Current()
+	if err != nil {
+		return err
 	}
-	return exec.Command(`rtmpdump`, `-r`, `rtmp://fms-base1.mitene.ad.jp/agqr/aandg22`, `--live`, `-o`, parseFilepath(fileout)).Run()
-}
+	fileout = strings.Replace(fileout, "~", usr.HomeDir, 1)
 
-func (rad *agqr) Stream(name string) error {
-	// name is not used
-	rtmpdump := exec.Command(`rtmpdump`, `-r`, `rtmp://fms-base1.mitene.ad.jp/agqr/aandg22`, `--live`)
-	mpv := exec.Command(`mpv`, `-`, `-no-video`)
-	return pipeCmd(rtmpdump, mpv)
+	if _, err := os.Stat(fileout); err == nil {
+		return fmt.Errorf(`File %s exists.`, fileout)
+	}
+
+	if _, err := os.Stat(fileout); err == nil {
+		return fmt.Errorf(`File %s exists`, fileout)
+	}
+
+	return exec.Command(`rtmpdump`, `-r`, `rtmp://fms-base1.mitene.ad.jp/agqr/aandg22`, `--live`, `-o`, parseFilepath(fileout)).Run()
 }
