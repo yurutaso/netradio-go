@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"os/exec"
+	"os/user"
 	"path"
 	"sort"
 	"strconv"
@@ -18,6 +20,7 @@ const (
 
 type Program struct {
 	station string
+	url     string
 	count   string
 	date    string
 	title   string
@@ -27,10 +30,11 @@ type Program struct {
 func GetProgram(station string) (*Program, error) {
 	u, err := url.Parse(HIBIKI_API)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	u.Path = path.Join(u.Path, `programs`, station)
 
+	// Get radio information as XML
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", u.String(), nil)
 	if err != nil {
@@ -39,23 +43,18 @@ func GetProgram(station string) (*Program, error) {
 	req.Header.Add("X-Requested-With", "XMLHttpRequest")
 	res, err := client.Do(req)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	defer res.Body.Close()
 
+	// Extract information from XML
 	var data map[string]interface{}
 	if err := json.NewDecoder(res.Body).Decode(&data); err != nil {
 		return nil, err
 	}
-	return m, nil
-	if err != nil {
-		return nil, err
-	}
-
 	if data[`episode`] == nil {
-		return nil, nil
+		return nil, fmt.Errorf("Warning. No program found with the media %s\n", station)
 	}
-
 	episode := data[`episode`].(map[string]interface{})
 
 	video_id_tmp := episode[`video`].(map[string]interface{})[`id`]
@@ -67,8 +66,8 @@ func GetProgram(station string) (*Program, error) {
 	date := fmt.Sprintf("%s%s%s", YMS[0], YMS[1], YMS[2])
 	person := data[`cast`].(string)
 
-	client := &http.Client{}
-	u, err := url.Parse(HIBIKI_API)
+	// Get radio url (needs videoid obtained from the above XML)
+	u, err = url.Parse(HIBIKI_API)
 	if err != nil {
 		return nil, err
 	}
@@ -77,21 +76,23 @@ func GetProgram(station string) (*Program, error) {
 	q.Set(`video_id`, videoid)
 	u.RawQuery = q.Encode()
 
-	req, err := http.NewRequest("GET", u.String(), nil)
+	req, err = http.NewRequest("GET", u.String(), nil)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	req.Header.Add("X-Requested-With", "XMLHttpRequest")
-	res, err := client.Do(req)
+	res, err = client.Do(req)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	defer res.Body.Close()
-	var m map[string]string
-	if err := json.NewDecoder(res.Body).Decode(&m); err != nil {
-		return "", err
+
+	var media map[string]string
+	if err := json.NewDecoder(res.Body).Decode(&media); err != nil {
+		return nil, err
 	}
-	mediaurl := m[`playlist_url`]
+	mediaurl := media[`playlist_url`]
+
 	return &Program{station: station, url: mediaurl, title: title, person: person, count: count, date: date}, nil
 }
 
@@ -123,14 +124,23 @@ func GetStations() ([]string, error) {
 		data := f.(map[string]interface{})
 		stations[i] = data[`access_id`].(string)
 	}
-	sort.Strings(list)
+	sort.Strings(stations)
 	return stations, nil
 }
 
-func Download(url, fileout string) error {
-	fileout = parseFilepath(fileout)
-	if exists(fileout) {
+func Download(prog *Program, fileout string) error {
+	if len(fileout) == 0 {
+		fileout = prog.title + `_` + prog.count + `.m4a`
+		// Sometimes prog.title contains `/`, which may cause error in creating new file
+		fileout = strings.Replace(fileout, `/`, `_`, -1)
+	}
+	usr, err := user.Current()
+	if err != nil {
+		return err
+	}
+	fileout = strings.Replace(fileout, "~", usr.HomeDir, 1)
+	if _, err := os.Stat(fileout); err == nil {
 		return fmt.Errorf(`File %s exists.`, fileout)
 	}
-	return exec.Command("ffmpeg", "-y", "-i", url, "-c", "copy", "-bsf:a", "aac_adtstoasc", fileout).Run()
+	return exec.Command("ffmpeg", "-y", "-i", prog.url, "-c", "copy", "-bsf:a", "aac_adtstoasc", fileout).Run()
 }
