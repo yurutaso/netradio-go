@@ -2,13 +2,14 @@ package agqr
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"os/user"
 	"strings"
+	"time"
 )
 
-func (rad *agqr) Download(url, fileout string) error {
-	// url is not used
+func Download(fileout, duration string) error {
 	usr, err := user.Current()
 	if err != nil {
 		return err
@@ -23,5 +24,30 @@ func (rad *agqr) Download(url, fileout string) error {
 		return fmt.Errorf(`File %s exists`, fileout)
 	}
 
-	return exec.Command(`rtmpdump`, `-r`, `rtmp://fms-base1.mitene.ad.jp/agqr/aandg22`, `--live`, `-o`, parseFilepath(fileout)).Run()
+	d, err := time.ParseDuration(duration)
+	if err != nil {
+		return err
+	}
+
+	cmd := exec.Command(`rtmpdump`, `-r`, `rtmp://fms-base1.mitene.ad.jp/agqr/aandg22`, `--live`, `-o`, fileout)
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+
+	done := make(chan error, 1)
+	go func() {
+		done <- cmd.Wait()
+	}()
+
+	select {
+	case <-time.After(d):
+		if err := cmd.Process.Kill(); err != nil {
+			return err
+		}
+	case err := <-done:
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
