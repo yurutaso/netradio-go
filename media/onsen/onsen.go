@@ -3,10 +3,12 @@ package onsen
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/yurutaso/go-anirad"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
+	"os/user"
 	"path"
 	"sort"
 	"strings"
@@ -46,14 +48,35 @@ func GetStations() ([]string, error) {
 
 func Download(prog *Program, fileout string) error {
 	res, err := http.Get(prog.url)
-	defer res.Body.Close()
 	if err != nil {
 		return err
 	}
+	defer res.Body.Close()
+
 	if len(fileout) == 0 {
-		fileout = anirad.ParseFilepath(prog.title + `_` + prog.count + `.m4a`)
+		fileout = prog.title + `_` + prog.count + `.m4a`
+		// Sometimes prog.title contains `/`, which may cause error in creating new file
+		fileout = strings.Replace(fileout, `/`, `_`, -1)
 	}
-	return anirad.Download(res.Body, fileout)
+	usr, err := user.Current()
+	if err != nil {
+		return err
+	}
+	fileout = strings.Replace(fileout, "~", usr.HomeDir, 1)
+	if _, err := os.Stat(fileout); err == nil {
+		return fmt.Errorf(`File %s exists.`, fileout)
+	}
+	out, err := os.Create(fileout)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, res.Body)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func GetProgram(station string) (*Program, error) {
@@ -61,7 +84,7 @@ func GetProgram(station string) (*Program, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !anirad.Has(stations, station) {
+	if !has(stations, station) {
 		return nil, fmt.Errorf(`Station "%s" not found`, station)
 	}
 
@@ -113,4 +136,13 @@ func GetProgram(station string) (*Program, error) {
 		return nil, err
 	}
 	return &Program{station: station, url: mediaurl, title: title, count: count, date: date, person: person}, nil
+}
+
+func has(list []string, name string) bool {
+	for _, v := range list {
+		if name == v {
+			return true
+		}
+	}
+	return false
 }

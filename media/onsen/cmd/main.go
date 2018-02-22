@@ -1,8 +1,7 @@
 package main
 
 import (
-	"fmt"
-	"github.com/yurutaso/go-anirad/media/onsen"
+	"github.com/yurutaso/netradio-go/media/onsen"
 	"log"
 )
 
