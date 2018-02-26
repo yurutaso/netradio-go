@@ -162,9 +162,6 @@ func main() {
 		}
 		duration := *optT
 		fileout := *optO
-		if fileout == `` {
-			log.Fatal(fmt.Errorf(`Error! You must set output with -o.`))
-		}
 		err = downloadAGQR(fileout, duration)
 	default:
 		log.Fatal(fmt.Errorf(`Invalid media (onsen/hibiki/radiko/agqr)`))

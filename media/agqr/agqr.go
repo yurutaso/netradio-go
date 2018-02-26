@@ -11,6 +11,10 @@ import (
 
 func Download(fileout, duration string) error {
 	usr, err := user.Current()
+	if fileout == `` {
+		t := time.Now()
+		fileout = fmt.Sprintf("%4d%2d%2d%2d%2d_AGQR.m4a", t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute())
+	}
 	if err != nil {
 		return err
 	}
