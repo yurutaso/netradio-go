@@ -9,6 +9,8 @@ import (
 	"github.com/yurutaso/netradio-go/media/radiko"
 	"log"
 	"os"
+	"path/filepath"
+	"time"
 )
 
 func downloadRadiko(title, person, info string, station string) error {
@@ -89,14 +91,14 @@ func main() {
 		flag.PrintDefaults()
 	}
 	var (
-		optS  = fs.String("s", "", "station name")
-		optN  = fs.String("n", "", "name of the title to filter")
-		optP  = fs.String("p", "", "person to filter")
-		optD  = fs.String("d", "", "description of the program to filter")
-		optT  = fs.String("t", "30m", "time duration to record AGQR(default:30m)")
-		optO  = fs.String("o", "", "output")
-		flagI = fs.Bool("i", false, "show info of a program. (ignored if -l is set)")
-		flagL = fs.Bool("l", false, "list stations.")
+		optS   = fs.String("s", "", "station name")
+		optN   = fs.String("n", "", "name of the title to filter")
+		optP   = fs.String("p", "", "person to filter")
+		optD   = fs.String("d", "", "description of the program to filter")
+		optT   = fs.String("t", "30m", "time duration to record AGQR(default:30m)")
+		optDIR = fs.String("dir", "", "output directory")
+		flagI  = fs.Bool("i", false, "show info of a program. (ignored if -l is set)")
+		flagL  = fs.Bool("l", false, "list stations.")
 	)
 	fs.Parse(os.Args[2:])
 
@@ -161,7 +163,8 @@ func main() {
 			log.Fatal(fmt.Errorf(`Error! Invalid option -l with agqr.`))
 		}
 		duration := *optT
-		fileout := *optO
+		t := time.Now()
+		fileout := filepath.Join(*optDIR, fmt.Sprintf("%4d%02d%02d%02d%02d_AGQR.m4a", t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute()))
 		err = downloadAGQR(fileout, duration)
 	default:
 		log.Fatal(fmt.Errorf(`Invalid media (onsen/hibiki/radiko/agqr)`))
