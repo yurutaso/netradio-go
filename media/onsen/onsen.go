@@ -28,6 +28,11 @@ type Program struct {
 	person  string
 }
 
+func (prog *Program) String() string {
+	return fmt.Sprintf("station: %s\ntitle: %s\ndate: %s\ncount: %s\ncast: %s\nurl: %s\n",
+		prog.station, prog.title, prog.date, prog.count, prog.person, prog.url)
+}
+
 func GetStations() ([]string, error) {
 	res, err := http.Get(ONSEN_PROGRAM_JSON)
 	defer res.Body.Close()
@@ -120,7 +125,7 @@ func GetProgram(station string) (*Program, error) {
 	}
 
 	// Check if API returns nothing or error json.
-	fmt.Println(data)
+	//fmt.Println(data)
 	if _, ok := data[`err`]; ok {
 		return nil, fmt.Errorf(`Content named %v not found.`, station)
 	}
@@ -128,7 +133,7 @@ func GetProgram(station string) (*Program, error) {
 	title := data[`title`].(string)
 	count := data[`count`].(string)
 	YMS := strings.Split(data[`update`].(string), `.`)
-	date := fmt.Sprint("%s%s%s", YMS[0], YMS[1], YMS[2])
+	date := fmt.Sprintf("%s%s%s", YMS[0], YMS[1], YMS[2])
 	person := data[`personality`].(string)
 	mediaurl := ((data[`moviePath`].(map[string]interface{}))[`pc`]).(string)
 	if len(mediaurl) == 0 {

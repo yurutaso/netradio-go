@@ -27,6 +27,11 @@ type Program struct {
 	person  string
 }
 
+func (prog *Program) String() string {
+	return fmt.Sprintf("station: %s\ntitle: %s\ndate: %s\ncount: %s\ncast: %s\nurl: %s\n",
+		prog.station, prog.title, prog.date, prog.count, prog.person, prog.url)
+}
+
 func GetProgram(station string) (*Program, error) {
 	u, err := url.Parse(HIBIKI_API)
 	if err != nil {

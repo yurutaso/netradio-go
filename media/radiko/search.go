@@ -10,6 +10,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var AREA_TABLE = map[string]string{
@@ -278,8 +279,8 @@ func parseProgramXML(r io.Reader) ([]Program, error) {
 	return progs, nil
 }
 
-func DateToInt(year, month, day, hour, min, sec int) int {
-	s := fmt.Sprintf("%4d%02d%02d%02d%02d%02d", year, month, day, hour, min, sec)
+func DateToInt(t time.Time) int {
+	s := fmt.Sprintf("%4d%02d%02d%02d%02d%02d", t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second())
 	i, _ := strconv.Atoi(s)
 	return i
 }

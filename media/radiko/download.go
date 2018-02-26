@@ -9,9 +9,14 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func Download(fileout string, prog Program) {
+	// exit if future program
+	if t := DateToInt(time.Now()); t < prog.to {
+		log.Fatal(`This program is not broadcasted yet.`)
+	}
 	//client, token, err := login()
 	client, token, err := login2()
 	if err != nil {
