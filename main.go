@@ -162,6 +162,9 @@ func main() {
 		if *flagL {
 			log.Fatal(fmt.Errorf(`Error! Invalid option -l with agqr.`))
 		}
+		if *optD != "" {
+			log.Fatal(fmt.Errorf(`Error! Invalid option -d with agqr.`))
+		}
 		duration := *optT
 		t := time.Now()
 		fileout := filepath.Join(*optDIR, fmt.Sprintf("%4d%02d%02d%02d%02d_AGQR.m4a", t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute()))
