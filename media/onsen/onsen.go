@@ -59,7 +59,7 @@ func Download(prog *Program, fileout string) error {
 	defer res.Body.Close()
 
 	if len(fileout) == 0 {
-		fileout = prog.title + `_` + prog.count + `.m4a`
+		fileout = prog.title + `_` + prog.count + `.mp3`
 		// Sometimes prog.title contains `/`, which may cause error in creating new file
 		fileout = strings.Replace(fileout, `/`, `_`, -1)
 	}
