@@ -167,7 +167,7 @@ func main() {
 		}
 		duration := *optT
 		t := time.Now()
-		fileout := filepath.Join(*optDIR, fmt.Sprintf("%4d%02d%02d%02d%02d_AGQR.m4a", t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute()))
+		fileout := filepath.Join(*optDIR, fmt.Sprintf("%4d%02d%02d%02d%02d_AGQR.flv", t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute()))
 		err = downloadAGQR(fileout, duration)
 	default:
 		log.Fatal(fmt.Errorf(`Invalid media (onsen/hibiki/radiko/agqr)`))
