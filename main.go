@@ -16,13 +16,13 @@ const (
 	HELP string = `
 	Usage: onsen [-l] -s station [-i] [-o output]
 	Usage: hibiki [-l] -s station [-i] [-o output]
-	Usage: radiko -s station [-t title] [-p person] [-i info]
+	Usage: radiko [-l] -s station [selections "-n name" "-p person" "-i info" of the program]
 	Usage: agqr -o output -d duration(default: 30m)
 	`
 )
 
-func downloadRadiko(title, person, info string, station string) error {
-	progs, err := radiko.GetStationProgramWeek(`QRR`)
+func downloadRadiko(title, person, info, station string) error {
+	progs, err := radiko.GetStationProgramWeek(station)
 	if err != nil {
 		return err
 	}
@@ -152,17 +152,24 @@ func main() {
 		}
 		err = downloadHibiki(station, *optO)
 	case `radiko`:
+		if *flagL {
+			err = radiko.ListStations(radiko.AREA_TABLE[`Tokyo`])
+			if err != nil {
+				log.Fatal(err)
+			}
+			break
+		}
 		if *flagI {
 			log.Fatal(fmt.Errorf(`Error! Invalid option -i with radiko.`))
-		}
-		if *flagL {
-			log.Fatal(fmt.Errorf(`Error! Invalid option -l with radiko.`))
 		}
 		if *optO != "" {
 			log.Fatal(fmt.Errorf(`Error! Invalid option -o with radiko.`))
 		}
 		if *optDIR != "" {
 			log.Fatal(fmt.Errorf(`Error! Invalid option -dir with radiko.`))
+		}
+		if *optT {
+			log.Fatal(fmt.Errorf(`Error! Invalid option -t with radiko.`))
 		}
 		station := *optS
 		if station == `` {
