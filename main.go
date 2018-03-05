@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"time"
 )
+
 const (
 	HELP string = `
 	Usage: onsen [-l] -s station [-i] [-o output]
@@ -168,7 +169,7 @@ func main() {
 		if *optDIR != "" {
 			log.Fatal(fmt.Errorf(`Error! Invalid option -dir with radiko.`))
 		}
-		if *optT {
+		if *optT != "" {
 			log.Fatal(fmt.Errorf(`Error! Invalid option -t with radiko.`))
 		}
 		station := *optS
