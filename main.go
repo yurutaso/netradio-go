@@ -18,7 +18,7 @@ const (
 	Usage: onsen [-l] -s station [-i] [-o output]
 	Usage: hibiki [-l] -s station [-i] [-o output]
 	Usage: radiko [-l] -s station [selections "-n name" "-p person" "-i info" of the program]
-	Usage: agqr -o output -d duration(default: 30m)
+	Usage: agqr -o output -t time(default: 30m)
 	`
 )
 
@@ -108,7 +108,7 @@ func main() {
 		optN   = fs.String("n", "", "name of the title to filter")
 		optP   = fs.String("p", "", "person to filter")
 		optS   = fs.String("s", "", "station name")
-		optT   = fs.String("t", "30m", "time duration to record AGQR(default:30m)")
+		optT   = fs.String("t", "", "time duration to record AGQR(default:30m)")
 		flagI  = fs.Bool("i", false, "show info of a program. (ignored if -l is set)")
 		flagL  = fs.Bool("l", false, "list stations.")
 	)
@@ -193,7 +193,12 @@ func main() {
 		if *optO != "" {
 			log.Fatal(fmt.Errorf(`Error! Invalid option -o with agqr.`))
 		}
-		duration := *optT
+		duration := ""
+		if *optT == "" {
+			duration = "30m"
+		} else {
+			duration = *optT
+		}
 		t := time.Now()
 		fileout := filepath.Join(*optDIR, fmt.Sprintf("%4d%02d%02d%02d%02d_AGQR.flv", t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute()))
 		err = downloadAGQR(fileout, duration)
