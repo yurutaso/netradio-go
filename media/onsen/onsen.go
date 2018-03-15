@@ -150,7 +150,7 @@ func GetProgram(station string) (*Program, error) {
 			date = fmt.Sprintf("%s%s%s", YMS[0], YMS[1], YMS[2])
 		}
 	}
-	if data[`personaity`] != nil {
+	if data[`personality`] != nil {
 		person = data[`personality`].(string)
 	}
 	if data[`moviePath`] != nil {
