@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/yurutaso/netradio-go/media/agqr"
+	"github.com/yurutaso/netradio-go/media/ann"
 	"github.com/yurutaso/netradio-go/media/hibiki"
 	"github.com/yurutaso/netradio-go/media/onsen"
 	"github.com/yurutaso/netradio-go/media/radiko"
@@ -53,6 +54,14 @@ func downloadOnsen(station, fileout string) error {
 		return err
 	}
 	return onsen.Download(prog, fileout)
+}
+
+func downloadANN(fileout string) error {
+	prog, err := ann.GetProgram()
+	if err != nil {
+		return err
+	}
+	return ann.Download(prog, fileout)
 }
 
 func downloadHibiki(station, fileout string) error {
@@ -180,6 +189,23 @@ func main() {
 		person := *optP
 		description := *optD
 		err = downloadRadiko(title, person, description, station)
+	case `ann`:
+		if *flagI {
+			log.Fatal(fmt.Errorf(`Error! Invalid option -i with agqr.`))
+		}
+		if *optDIR != "" {
+			log.Fatal(fmt.Errorf(`Error! Invalid option -dir with radiko.`))
+		}
+		if *flagL {
+			log.Fatal(fmt.Errorf(`Error! Invalid option -l with agqr.`))
+		}
+		if *optD != "" {
+			log.Fatal(fmt.Errorf(`Error! Invalid option -d with agqr.`))
+		}
+		if *optT != "" {
+			log.Fatal(fmt.Errorf(`Error! Invalid option -t with agqr.`))
+		}
+		err = downloadANN(*optO)
 	case `agqr`:
 		if *flagI {
 			log.Fatal(fmt.Errorf(`Error! Invalid option -i with agqr.`))
