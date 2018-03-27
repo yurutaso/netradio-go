@@ -20,17 +20,17 @@ const (
 )
 
 type Program struct {
-	station string
-	url     string
-	title   string
-	count   string
-	date    string
-	person  string
+	Station string
+	Url     string
+	Title   string
+	Count   string
+	Date    string
+	Person  string
 }
 
 func (prog *Program) String() string {
 	return fmt.Sprintf("station: %s\ntitle: %s\ndate: %s\ncount: %s\ncast: %s\nurl: %s\n",
-		prog.station, prog.title, prog.date, prog.count, prog.person, prog.url)
+		prog.Station, prog.Title, prog.Date, prog.Count, prog.Person, prog.Url)
 }
 
 func GetStations() ([]string, error) {
@@ -52,14 +52,14 @@ func GetStations() ([]string, error) {
 }
 
 func Download(prog *Program, fileout string) error {
-	res, err := http.Get(prog.url)
+	res, err := http.Get(prog.Url)
 	if err != nil {
 		return err
 	}
 	defer res.Body.Close()
 
 	if len(fileout) == 0 {
-		fileout = prog.title + `_` + prog.count + `.m4a`
+		fileout = prog.Title + `_` + prog.Count + `.mp3`
 		// Sometimes prog.title contains `/`, which may cause error in creating new file
 		fileout = strings.Replace(fileout, `/`, `_`, -1)
 	}
@@ -123,6 +123,9 @@ func GetProgram(station string) (*Program, error) {
 	if err != nil {
 		return nil, err
 	}
+	if data == nil {
+		return nil, fmt.Errorf(`No media found`)
+	}
 
 	// Check if API returns nothing or error json.
 	//fmt.Println(data)
@@ -130,17 +133,37 @@ func GetProgram(station string) (*Program, error) {
 		return nil, fmt.Errorf(`Content named %v not found.`, station)
 	}
 
-	title := data[`title`].(string)
-	count := data[`count`].(string)
-	YMS := strings.Split(data[`update`].(string), `.`)
-	date := fmt.Sprintf("%s%s%s", YMS[0], YMS[1], YMS[2])
-	person := data[`personality`].(string)
-	mediaurl := ((data[`moviePath`].(map[string]interface{}))[`pc`]).(string)
-	if len(mediaurl) == 0 {
-		err := fmt.Errorf(station + ` exists, but no media found.`)
-		return nil, err
+	title := ``
+	count := ``
+	date := ``
+	person := ``
+	mediaurl := ``
+	if data[`title`] != nil {
+		title = data[`title`].(string)
 	}
-	return &Program{station: station, url: mediaurl, title: title, count: count, date: date, person: person}, nil
+	if data[`count`] != nil {
+		count = data[`count`].(string)
+	}
+	if data[`update`] != nil {
+		YMS := strings.Split(data[`update`].(string), `.`)
+		if len(YMS) > 2 {
+			date = fmt.Sprintf("%s%s%s", YMS[0], YMS[1], YMS[2])
+		}
+	}
+	if data[`personality`] != nil {
+		person = data[`personality`].(string)
+	}
+	if data[`moviePath`] != nil {
+		pathes := data[`moviePath`].(map[string]interface{})
+		if pathes[`pc`] != nil {
+			mediaurl = pathes[`pc`].(string)
+		}
+	}
+	prog := &Program{Station: station, Url: mediaurl, Title: title, Count: count, Date: date, Person: person}
+	if len(mediaurl) == 0 {
+		return prog, fmt.Errorf(station + ` exists, but no media found.`)
+	}
+	return prog, nil
 }
 
 func has(list []string, name string) bool {

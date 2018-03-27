@@ -138,8 +138,13 @@ func getAreaID(areaName string) (string, error) {
 	return "", fmt.Errorf("Invalid areaName. Run listAreaNames() to check available areaNames.")
 }
 
-func listStations(areaID string) error {
-	res, err := http.Get(path.Join(RADIKO_API_URL, `station`, `list`, areaID+`.xml`))
+func ListStations(areaID string) error {
+	u, err := url.Parse(RADIKO_API_URL)
+	if err != nil {
+		return err
+	}
+	u.Path = path.Join(u.Path, `station`, `list`, areaID+`.xml`)
+	res, err := http.Get(u.String())
 	if err != nil {
 		return err
 	}
