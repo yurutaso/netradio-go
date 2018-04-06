@@ -2,12 +2,13 @@ package ann
 
 import (
 	"fmt"
-	"github.com/PuerkitoBio/goquery"
 	"net/http"
 	"net/url"
 	"os/exec"
 	"path"
 	"strings"
+
+	"github.com/PuerkitoBio/goquery"
 )
 
 const (
@@ -53,23 +54,31 @@ func GetProgram() (*Program, error) {
 	if err != nil {
 		return nil, err
 	}
-	s := doc.Find(`div#container>div#ct_movie>div.inner>ul`).First()
-	li1 := s.Find(`li`).First()
-	link, exists := li1.Find(`a`).First().Attr(`href`)
-	if !exists {
-		return nil, fmt.Errorf(`Media not found.`)
-	}
+	var prog Program
+	doc.Find(`div#container>div#ct_movie>div.inner>ul`).EachWithBreak(func(i int, s *goquery.Selection) bool {
+		li1 := s.Find(`li`).First()
+		link, exists := li1.Find(`a`).First().Attr(`href`)
+		if !exists {
+			err = fmt.Errorf(`No media found`)
+			return true
+		}
+		if link[len(link)-2:] == `ex` {
+			fmt.Printf("Skip premium-only program\n")
+			return true
+		}
+		li2 := s.Find(`li`).Next()
+		info := li2.Find(`div.ttl_ct_program`).First().Text()
 
-	li2 := s.Find(`li`).Next()
-	info := li2.Find(`div.ttl_ct_program`).First().Text()
-
-	substr := strings.Split(info, `】`)
-	title := substr[1]
-	substr = strings.Split(substr[0], `＜`)
-	count := substr[0][6:]
-	person := substr[1][:len(substr[1])-3]
-
-	return &Program{url: link, title: title, count: count, person: person}, nil
+		substr := strings.Split(info, `】`)
+		title := substr[1]
+		substr = strings.Split(substr[0], `＜`)
+		count := substr[0][6:]
+		person := substr[1][:len(substr[1])-3]
+		prog = Program{url: link, title: title, count: count, person: person}
+		fmt.Printf(fmt.Sprintf("Found the latest program #%s on %s\n", count, link))
+		return false
+	})
+	return &prog, nil
 }
 
 func Download(prog *Program, fileout string) error {
