@@ -11,6 +11,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 )
 
@@ -18,15 +19,40 @@ const (
 	HELP string = `
 	Usage: onsen [-l] -s station [-i] [-o output]
 	Usage: hibiki [-l] -s station [-i] [-o output]
-	Usage: radiko [-l] -s station [selections "-n name" "-p person" "-i info" of the program]
+	Usage: radiko [-l] -s station [selections "-n name" "-p person" "-d description" "-day day(e.g. 20180507)" of the program]
 	Usage: agqr -o output -t time(default: 30m)
 	`
 )
 
-func downloadRadiko(title, person, info, station string) error {
-	progs, err := radiko.GetStationProgramWeek(station)
-	if err != nil {
-		return err
+func downloadRadiko(title, person, info, day, station string) error {
+	var progs []radiko.Program
+	var err error
+	if len(day) == 0 {
+		progs, err = radiko.GetStationProgramWeek(station)
+		if err != nil {
+			return err
+		}
+	} else {
+		if len(day) != 8 {
+			fmt.Println(day)
+			return fmt.Errorf("opt -day must be numbers YYYYMMDD (e.g. 20180527)")
+		}
+		y, err := strconv.Atoi(day[0:4])
+		if err != nil {
+			return err
+		}
+		m, err := strconv.Atoi(day[4:6])
+		if err != nil {
+			return err
+		}
+		d, err := strconv.Atoi(day[6:8])
+		if err != nil {
+			return err
+		}
+		progs, err = radiko.GetStationProgramDate(station, y, m, d)
+		if err != nil {
+			return err
+		}
 	}
 	progs, err = radiko.FilterByString(progs, title, `title`)
 	if err != nil {
@@ -112,6 +138,7 @@ func main() {
 	}
 	var (
 		optD   = fs.String("d", "", "description of the program to filter")
+		optDay = fs.String("day", "", "day (e.g. 20180507)")
 		optDIR = fs.String("dir", "", "output directory (ignored if -o is set)")
 		optO   = fs.String("o", "", "output file")
 		optN   = fs.String("n", "", "name of the title to filter")
@@ -188,7 +215,8 @@ func main() {
 		title := *optN
 		person := *optP
 		description := *optD
-		err = downloadRadiko(title, person, description, station)
+		day := *optDay
+		err = downloadRadiko(title, person, description, day, station)
 	case `ann`:
 		if *flagI {
 			log.Fatal(fmt.Errorf(`Error! Invalid option -i with agqr.`))
