@@ -22,7 +22,7 @@ const (
 	Usage: hibiki [-l] -s station [-i] [-o output]
 	Usage: radiko [-l] -s station [selections "-n name" "-p person" "-d description" "-day day(e.g. 20180507)" of the program]
 	Usage: agqr -o output -t time(default: 30m)
-	Usage: ann [-u username] [-p password] [-all]
+	Usage: ann [-l] [-u username] [-p password] [-m maxnumber]
 	`
 )
 
@@ -84,7 +84,7 @@ func downloadOnsen(station, fileout string) error {
 	return onsen.Download(prog, fileout)
 }
 
-func downloadANN(fileout string, id string, password string, getall bool) error {
+func downloadANN(fileout string, id string, password string, max int) error {
 	client := &http.Client{}
 	if id != "" && password != "" {
 		if err := ann.Login(client, id, password); err != nil {
@@ -94,10 +94,10 @@ func downloadANN(fileout string, id string, password string, getall bool) error 
 
 	var progs []*ann.Program
 	var err error
-	if !getall {
+	if max < 1 {
 		progs, err = ann.GetLatestProgram(client)
 	} else {
-		progs, err = ann.GetPrograms(client)
+		progs, err = ann.GetPrograms(client, max)
 	}
 	if err != nil {
 		return err
@@ -158,18 +158,18 @@ func main() {
 		flag.PrintDefaults()
 	}
 	var (
-		optD    = fs.String("d", "", "description of the program to filter")
-		optDay  = fs.String("day", "", "day (e.g. 20180507)")
-		optDIR  = fs.String("dir", "", "output directory (ignored if -o is set)")
-		optO    = fs.String("o", "", "output file")
-		optN    = fs.String("n", "", "name of the title to filter")
-		optP    = fs.String("p", "", "password (ann), person to filter (radiko)")
-		optS    = fs.String("s", "", "station name")
-		optT    = fs.String("t", "", "time duration to record AGQR(default:30m)")
-		optU    = fs.String("u", "", "username")
-		flagI   = fs.Bool("i", false, "show info of a program. (ignored if -l is set)")
-		flagL   = fs.Bool("l", false, "list stations.")
-		flagAll = fs.Bool("all", false, "download all programs (ann only).")
+		optD   = fs.String("d", "", "description of the program to filter")
+		optDay = fs.String("day", "", "day (e.g. 20180507)")
+		optDIR = fs.String("dir", "", "output directory (ignored if -o is set)")
+		optO   = fs.String("o", "", "output file")
+		optM   = fs.Int("m", -1, "max number (default -1: all programs)")
+		optN   = fs.String("n", "", "name of the title to filter")
+		optP   = fs.String("p", "", "password (ann), person to filter (radiko)")
+		optS   = fs.String("s", "", "station name")
+		optT   = fs.String("t", "", "time duration to record AGQR(default:30m)")
+		optU   = fs.String("u", "", "username")
+		flagI  = fs.Bool("i", false, "show info of a program. (ignored if -l is set)")
+		flagL  = fs.Bool("l", false, "list stations.")
 	)
 	fs.Parse(os.Args[2:])
 
@@ -256,7 +256,7 @@ func main() {
 		if *optT != "" {
 			log.Fatal(fmt.Errorf(`Error! Invalid option -t with ann.`))
 		}
-		err = downloadANN(*optO, *optU, *optP, *flagAll)
+		err = downloadANN(*optO, *optU, *optP, *optM)
 	case `agqr`:
 		if *flagI {
 			log.Fatal(fmt.Errorf(`Error! Invalid option -i with agqr.`))

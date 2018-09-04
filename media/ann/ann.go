@@ -23,6 +23,7 @@ const (
 	ANN_AUTH        = `https://i.allnightnippon.com/auth`
 	ANN_AUTHAPI     = `https://i.allnightnippon.com/auth/fromApi`
 	ANN_LOGIN       = `https://i-api.allnightnippon.com/auth/login`
+	ANN_LOGOUT      = `https://i-api.allnightnippon.com/auth/logout`
 	ANN_WUGRGR_HOME = `/pg/pg_anni_wugrgr`
 	USER_AGENT      = `Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.189 Safari/537.36 Vivaldi/1.95.1077.55`
 )
@@ -69,10 +70,10 @@ func Login(client *http.Client, id string, password string) error {
 		return err
 	}
 	req.Header.Set(`User-Agent`, USER_AGENT)
-	//req.Header.Set(`Host`, `i-api.allnightnippon.com`)
-	//req.Header.Set(`Origin`, `https://i.allnightnippon.com`)
-	//req.Header.Set(`Referer`, `https://i.allnightnippon.com/auth`)
-	//req.Header.Set(`Content-Type`, `application/x-www-form-urlencoded; charset=UTF-8`)
+	req.Header.Set(`Host`, `i.allnightnippon.com`)
+	req.Header.Set(`Origin`, `https://i.allnightnippon.com`)
+	req.Header.Set(`Referer`, `https://i.allnightnippon.com/auth`)
+	req.Header.Set(`Content-Type`, `application/x-www-form-urlencoded`)
 	res, err := client.Do(req)
 	if err != nil {
 		return err
@@ -84,12 +85,17 @@ func Login(client *http.Client, id string, password string) error {
 		return err
 	}
 	var v struct {
-		Token string `json:"api_token"`
+		Token  string `json:"api_token"`
+		Status string `json:"status"`
 	}
 	if err := json.Unmarshal(buf, &v); err != nil {
 		return err
 	}
+	if strings.ToUpper(v.Status) != `SUCCESS` {
+		return fmt.Errorf("Failed to login. fromApi returns status code %s", v.Status)
+	}
 
+	// set the api_token to cookieJar
 	u, err := url.Parse(ANN_AUTHAPI)
 	if err != nil {
 		return err
@@ -99,7 +105,7 @@ func Login(client *http.Client, id string, password string) error {
 	cookies[0] = &http.Cookie{Name: `api_token`, Value: v.Token}
 	client.Jar.SetCookies(u, cookies)
 
-	// authentificate with api-token
+	// validate api_token
 	req, err = http.NewRequest(`POST`, ANN_AUTHAPI, nil)
 	if err != nil {
 		return err
@@ -122,7 +128,7 @@ func Login(client *http.Client, id string, password string) error {
 	defer res.Body.Close()
 	client.CheckRedirect = original
 
-	fmt.Println(`Login to anni`)
+	fmt.Println(`Successfully login to anni`)
 	return nil
 }
 
@@ -228,6 +234,7 @@ func findProgramsInPage(page int, client *http.Client) ([]*Program, error) {
 		return nil, err
 	}
 
+	var m3u8 string
 	progs := make([]*Program, 0)
 	doc.Find(`div#ct_movie>div.inner>ul`).EachWithBreak(func(i int, s *goquery.Selection) bool {
 		prog := &Program{}
@@ -241,7 +248,7 @@ func findProgramsInPage(page int, client *http.Client) ([]*Program, error) {
 		prog.url = fmt.Sprintf("%s/%s", ANN_ROOT, u)
 
 		// get url of the m3u8 stream
-		m3u8, err := getM3U8(client, prog.url)
+		m3u8, err = getM3U8(client, prog.url)
 		if err != nil {
 			return false
 		}
@@ -272,7 +279,7 @@ func findProgramsInPage(page int, client *http.Client) ([]*Program, error) {
 	return progs, nil
 }
 
-func GetPrograms(client *http.Client) ([]*Program, error) {
+func GetPrograms(client *http.Client, max int) ([]*Program, error) {
 	progs := make([]*Program, 0)
 
 	// Loop through pages
@@ -283,7 +290,16 @@ func GetPrograms(client *http.Client) ([]*Program, error) {
 			return nil, err
 		}
 		progs = append(progs, _progs...)
-		if len(progs) == num {
+
+		// check whether to break
+		n := len(progs)
+		// break if no program is found
+		if n == num {
+			break
+		}
+		// break if the number of programs found exceeds the max
+		if max > 0 && n >= max {
+			progs = progs[0:max]
 			break
 		}
 	}
