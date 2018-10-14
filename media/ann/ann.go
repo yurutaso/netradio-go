@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"os/user"
 	//"path"
 	"regexp"
 	//"strconv"
@@ -307,20 +308,36 @@ func GetPrograms(client *http.Client, max int) ([]*Program, error) {
 	return progs, nil
 }
 
+func GetOutputFilename(prog *Program, fileout string) (string, error) {
+	s := fileout
+	if s == "" {
+		s = fmt.Sprintf("%s.m4a", prog.title)
+		s = strings.Replace(s, ">", "＞", -1)
+		s = strings.Replace(s, "<", "＜", -1)
+		s = strings.Replace(s, "!", "！", -1)
+		s = strings.Replace(s, "?", "？", -1)
+	}
+	if s[0:2] == "~/" {
+		usr, err := user.Current()
+		if err != nil {
+			return "", err
+		}
+		s = strings.Replace(s, "~", usr.HomeDir, 1)
+	}
+	return strings.Replace(s, `/`, `_`, -1), nil
+}
+
 func Download(client *http.Client, prog *Program, fileout string) error {
-	if len(fileout) == 0 {
-		fileout = fmt.Sprintf("%s.m4a", prog.title)
-		fileout = strings.Replace(fileout, ">", "＞", -1)
-		fileout = strings.Replace(fileout, "<", "＜", -1)
-		fileout = strings.Replace(fileout, "!", "！", -1)
-		fileout = strings.Replace(fileout, "?", "？", -1)
+	fileout, err := GetOutputFilename(prog, fileout)
+	if err != nil {
+		return err
 	}
 	if _, err := os.Stat(fileout); err == nil {
 		fmt.Printf("File %s exists.\n", fileout)
 		return nil
 	}
 	fmt.Printf("Download file in %s as %s\n", prog.m3u8, fileout)
-	err := exec.Command("ffmpeg", "-y", "-i", prog.m3u8, "-acodec", "copy", "-bsf:a", "aac_adtstoasc", fileout).Run()
+	err = exec.Command("ffmpeg", "-y", "-i", prog.m3u8, "-acodec", "copy", "-bsf:a", "aac_adtstoasc", fileout).Run()
 	if err != nil {
 		return err
 	}

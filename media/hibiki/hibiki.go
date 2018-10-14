@@ -32,6 +32,21 @@ func (prog *Program) String() string {
 		prog.station, prog.title, prog.date, prog.count, prog.person, prog.url)
 }
 
+func GetOutputFilename(prog *Program, fileout string) (string, error) {
+	s := fileout
+	if s == "" {
+		s = fmt.Sprintf("%s_%s.mp3", prog.title, prog.count)
+	}
+	if s[0:2] == "~/" {
+		usr, err := user.Current()
+		if err != nil {
+			return "", err
+		}
+		s = strings.Replace(s, "~", usr.HomeDir, 1)
+	}
+	return strings.Replace(s, `/`, `_`, -1), nil
+}
+
 func GetProgram(station string) (*Program, error) {
 	u, err := url.Parse(HIBIKI_API)
 	if err != nil {
@@ -134,16 +149,10 @@ func GetStations() ([]string, error) {
 }
 
 func Download(prog *Program, fileout string) error {
-	if len(fileout) == 0 {
-		fileout = prog.title + `_` + prog.count + `.m4a`
-		// Sometimes prog.title contains `/`, which may cause error in creating new file
-		fileout = strings.Replace(fileout, `/`, `_`, -1)
-	}
-	usr, err := user.Current()
+	fileout, err := GetOutputFilename(prog, fileout)
 	if err != nil {
 		return err
 	}
-	fileout = strings.Replace(fileout, "~", usr.HomeDir, 1)
 	if _, err := os.Stat(fileout); err == nil {
 		return fmt.Errorf(`File %s exists.`, fileout)
 	}

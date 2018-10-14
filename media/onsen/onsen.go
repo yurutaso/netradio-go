@@ -51,6 +51,21 @@ func GetStations() ([]string, error) {
 	return result, nil
 }
 
+func GetOutputFilename(prog *Program, fileout string) (string, error) {
+	s := fileout
+	if s == "" {
+		s = fmt.Sprintf("%s_%s.mp3", prog.Title, prog.Count)
+	}
+	if s[0:2] == "~/" {
+		usr, err := user.Current()
+		if err != nil {
+			return "", err
+		}
+		s = strings.Replace(s, "~", usr.HomeDir, 1)
+	}
+	return strings.Replace(s, `/`, `_`, -1), nil
+}
+
 func Download(prog *Program, fileout string) error {
 	res, err := http.Get(prog.Url)
 	if err != nil {
@@ -58,16 +73,10 @@ func Download(prog *Program, fileout string) error {
 	}
 	defer res.Body.Close()
 
-	if len(fileout) == 0 {
-		fileout = prog.Title + `_` + prog.Count + `.mp3`
-		// Sometimes prog.title contains `/`, which may cause error in creating new file
-		fileout = strings.Replace(fileout, `/`, `_`, -1)
-	}
-	usr, err := user.Current()
+	fileout, err = GetOutputFilename(prog, fileout)
 	if err != nil {
 		return err
 	}
-	fileout = strings.Replace(fileout, "~", usr.HomeDir, 1)
 	if _, err := os.Stat(fileout); err == nil {
 		return fmt.Errorf(`File %s exists.`, fileout)
 	}
