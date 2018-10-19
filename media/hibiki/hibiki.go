@@ -35,7 +35,7 @@ func (prog *Program) String() string {
 func GetOutputFilename(prog *Program, fileout string) (string, error) {
 	s := fileout
 	if s == "" {
-		s = fmt.Sprintf("%s_%s.mp3", prog.title, prog.count)
+		s = fmt.Sprintf("%s_%s.m4a", prog.title, prog.count)
 	}
 	if s[0:2] == "~/" {
 		usr, err := user.Current()
