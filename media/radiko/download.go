@@ -31,7 +31,7 @@ func GetOutputFilename(prog Program, fileout string) (string, error) {
 func Download(fileout string, prog Program) {
 	// exit if future program
 	if t := DateToInt(time.Now()); t < prog.to {
-		log.Fatal(`This program is not broadcasted yet.`)
+		log.Fatal(fmt.Sprintf("Latest program found on %s.\nThe last program might be canceled by baseball game or any other reason.", strconv.Itoa(prog.to)))
 	}
 	//client, token, err := login()
 	client, token, err := login2()
