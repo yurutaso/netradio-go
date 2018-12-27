@@ -7,15 +7,31 @@ import (
 	"net/http"
 	"net/url"
 	"os/exec"
+	"os/user"
 	"strconv"
 	"strings"
 	"time"
 )
 
+func GetOutputFilename(prog Program, fileout string) (string, error) {
+	s := fileout
+	if s == "" {
+		s = strconv.Itoa(prog.ft) + `_` + prog.title + `.mp3`
+	}
+	if s[0:2] == "~/" {
+		usr, err := user.Current()
+		if err != nil {
+			return "", err
+		}
+		s = strings.Replace(s, "~", usr.HomeDir, 1)
+	}
+	return strings.Replace(s, `/`, `_`, -1), nil
+}
+
 func Download(fileout string, prog Program) {
 	// exit if future program
 	if t := DateToInt(time.Now()); t < prog.to {
-		log.Fatal(`This program is not broadcasted yet.`)
+		log.Fatal(fmt.Sprintf("No program available yet. The next program on.", strconv.Itoa(prog.to)))
 	}
 	//client, token, err := login()
 	client, token, err := login2()
@@ -28,9 +44,9 @@ func Download(fileout string, prog Program) {
 		log.Fatal(err)
 	}
 
-	if len(fileout) == 0 {
-		fileout = strconv.Itoa(prog.ft) + `_` + prog.title + `.mp3`
-		fileout = strings.Replace(fileout, `/`, `_`, -1)
+	fileout, err = GetOutputFilename(prog, fileout)
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	cmd := exec.Command(

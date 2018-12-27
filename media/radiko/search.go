@@ -337,3 +337,51 @@ func GetStationProgramDate(station string, year, month, day int) ([]Program, err
 	}
 	return parseProgramXML(r)
 }
+
+func Find(title, person, info, day, station string) ([]Program, error) {
+	var progs []Program
+	var err error
+	if len(day) == 0 {
+		progs, err = GetStationProgramWeek(station)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		if len(day) != 8 {
+			fmt.Println(day)
+			return nil, fmt.Errorf("opt -day must be numbers YYYYMMDD (e.g. 20180527)")
+		}
+		y, err := strconv.Atoi(day[0:4])
+		if err != nil {
+			return nil, err
+		}
+		m, err := strconv.Atoi(day[4:6])
+		if err != nil {
+			return nil, err
+		}
+		d, err := strconv.Atoi(day[6:8])
+		if err != nil {
+			return nil, err
+		}
+		progs, err = GetStationProgramDate(station, y, m, d)
+		if err != nil {
+			return nil, err
+		}
+	}
+	progs, err = FilterByString(progs, title, `title`)
+	if err != nil {
+		return nil, err
+	}
+	progs, err = FilterByString(progs, person, `person`)
+	if err != nil {
+		return nil, err
+	}
+	progs, err = FilterByString(progs, info, `info`)
+	if err != nil {
+		return nil, err
+	}
+	if len(progs) == 0 {
+		return nil, fmt.Errorf(`No radio program found`)
+	}
+	return progs, nil
+}
