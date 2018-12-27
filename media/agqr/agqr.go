@@ -33,7 +33,7 @@ func Download(fileout, duration string) error {
 		return err
 	}
 
-	cmd := exec.Command(`rtmpdump`, `-r`, `rtmp://fms-base1.mitene.ad.jp/agqr/aandg2`, `--live`, `-o`, fileout)
+	cmd := exec.Command(`rtmpdump`, `-r`, `rtmp://fms-base1.mitene.ad.jp/agqr/aandg22`, `--live`, `-o`, fileout)
 	if err := cmd.Start(); err != nil {
 		return err
 	}
