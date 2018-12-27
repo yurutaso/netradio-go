@@ -16,7 +16,8 @@ import (
 func GetOutputFilename(prog Program, fileout string) (string, error) {
 	s := fileout
 	if s == "" {
-		s = strconv.Itoa(prog.ft) + `_` + prog.title + `.mp3`
+		//s = strconv.Itoa(prog.ft) + `_` + prog.title + `.mp3`
+		s = strconv.FormatInt(prog.ft, 10) + `_` + prog.title + `.mp3`
 	}
 	if s[0:2] == "~/" {
 		usr, err := user.Current()
@@ -31,7 +32,8 @@ func GetOutputFilename(prog Program, fileout string) (string, error) {
 func Download(fileout string, prog Program) {
 	// exit if future program
 	if t := DateToInt(time.Now()); t < prog.to {
-		log.Fatal(fmt.Sprintf("No program available yet. The next program on.", strconv.Itoa(prog.to)))
+		//log.Fatal(fmt.Sprintf("No program available yet. The next program on.", strconv.Itoa(prog.to)))
+		log.Fatal(fmt.Sprintf("No program available yet. The next program on.", strconv.FormatInt(prog.to, 10)))
 	}
 	//client, token, err := login()
 	client, token, err := login2()
@@ -63,9 +65,11 @@ func Download(fileout string, prog Program) {
 	fmt.Printf("%s", b)
 }
 
-func getM3U8(client *http.Client, token, station_id string, ft, to int) (string, error) {
-	ft_i := strconv.Itoa(ft)
-	to_i := strconv.Itoa(to)
+func getM3U8(client *http.Client, token, station_id string, ft, to int64) (string, error) {
+	//ft_i := strconv.Itoa(ft)
+	//to_i := strconv.Itoa(to)
+	ft_i := strconv.FormatInt(ft, 10)
+	to_i := strconv.FormatInt(to, 10)
 
 	values := url.Values{}
 	values.Set(`station_id`, station_id)

@@ -66,8 +66,8 @@ var AREA_TABLE = map[string]string{
 type Program struct {
 	station  string
 	id       string
-	ft       int
-	to       int
+	ft       int64
+	to       int64
 	dur      int
 	title    string
 	info     string
@@ -102,7 +102,7 @@ func FilterByString(progs []Program, key string, fields ...string) ([]Program, e
 	return result, nil
 }
 
-func FilterByDate(progs []Program, from, to int, field string) ([]Program, error) {
+func FilterByDate(progs []Program, from, to int64, field string) ([]Program, error) {
 	if len(field) == 0 {
 		field = `ft`
 	}
@@ -111,7 +111,7 @@ func FilterByDate(progs []Program, from, to int, field string) ([]Program, error
 	}
 	result := make([]Program, 0, 0)
 	for _, prog := range progs {
-		data := 0
+		var data int64 = 0
 		switch field {
 		case `ft`:
 			data = prog.ft
@@ -252,17 +252,20 @@ func parseProgramXML(r io.Reader) ([]Program, error) {
 		doc.Find(`prog`).Each(func(_ int, s *goquery.Selection) {
 			id, _ := s.Attr(`id`)
 			_ft, _ := s.Attr(`ft`)
-			ft, err := strconv.Atoi(_ft)
+			//ft, err := strconv.Atoi(_ft)
+			ft, err := strconv.ParseInt(_ft, 10, 64)
 			if err != nil {
 				log.Println(err)
 			}
 			_to, _ := s.Attr(`to`)
-			to, err := strconv.Atoi(_to)
+			//to, err := strconv.Atoi(_to)
+			to, err := strconv.ParseInt(_to, 10, 64)
 			if err != nil {
 				log.Println(err)
 			}
 			_dur, _ := s.Attr(`dur`)
 			dur, err := strconv.Atoi(_dur)
+			//dur, err := strconv.ParseInt(_dur, 10, 64)
 			if err != nil {
 				log.Println(err)
 			}
@@ -284,9 +287,10 @@ func parseProgramXML(r io.Reader) ([]Program, error) {
 	return progs, nil
 }
 
-func DateToInt(t time.Time) int {
+func DateToInt(t time.Time) int64 {
 	s := fmt.Sprintf("%4d%02d%02d%02d%02d%02d", t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second())
-	i, _ := strconv.Atoi(s)
+	//i, _ := strconv.Atoi(s)
+	i, _ := strconv.ParseInt(s, 10, 64)
 	return i
 }
 
