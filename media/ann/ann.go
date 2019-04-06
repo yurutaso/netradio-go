@@ -20,12 +20,13 @@ import (
 )
 
 const (
-	ANN_ROOT        = `https://i.allnightnippon.com`
-	ANN_AUTH        = `https://i.allnightnippon.com/auth`
-	ANN_AUTHAPI     = `https://i.allnightnippon.com/auth/fromApi`
-	ANN_LOGIN       = `https://i-api.allnightnippon.com/auth/login`
-	ANN_LOGOUT      = `https://i-api.allnightnippon.com/auth/logout`
-	ANN_WUGRGR_HOME = `/pg/pg_anni_wugrgr`
+	ANN_ROOT    = `https://i.allnightnippon.com`
+	ANN_AUTH    = `https://i.allnightnippon.com/auth`
+	ANN_AUTHAPI = `https://i.allnightnippon.com/auth/fromApi`
+	ANN_LOGIN   = `https://i-api.allnightnippon.com/auth/login`
+	ANN_LOGOUT  = `https://i-api.allnightnippon.com/auth/logout`
+	//ANN_WUGRGR_HOME = `/pg/pg_anni_wugrgr`
+	ANN_WUGRGR_HOME = `/pg/pg_anni_rgr`
 	USER_AGENT      = `Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.189 Safari/537.36 Vivaldi/1.95.1077.55`
 )
 
@@ -158,7 +159,8 @@ func getM3U8(client *http.Client, u string) (m3u8 string, err error) {
 }
 
 func GetLatestProgram(client *http.Client) ([]*Program, error) {
-	req, err := http.NewRequest(`GET`, fmt.Sprintf("%s/pg/pg_anni_wugrgr?page=01", ANN_ROOT), nil)
+	//req, err := http.NewRequest(`GET`, fmt.Sprintf("%s/pg/pg_anni_wugrgr?page=01", ANN_ROOT), nil)
+	req, err := http.NewRequest(`GET`, fmt.Sprintf("%s/pg/pg_anni_rgr?page=01", ANN_ROOT), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -219,7 +221,8 @@ func GetLatestProgram(client *http.Client) ([]*Program, error) {
 }
 
 func findProgramsInPage(page int, client *http.Client) ([]*Program, error) {
-	req, err := http.NewRequest(`GET`, fmt.Sprintf("%s/pg/pg_anni_wugrgr?page=%d", ANN_ROOT, page), nil)
+	//req, err := http.NewRequest(`GET`, fmt.Sprintf("%s/pg/pg_anni_wugrgr?page=%d", ANN_ROOT, page), nil)
+	req, err := http.NewRequest(`GET`, fmt.Sprintf("%s/pg/pg_anni_rgr?page=%d", ANN_ROOT, page), nil)
 	if err != nil {
 		return nil, err
 	}
