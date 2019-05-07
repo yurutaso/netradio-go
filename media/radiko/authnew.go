@@ -82,6 +82,31 @@ func login2() (*http.Client, string, error) {
 	}
 	client := &http.Client{Jar: jar}
 
+	/* login to radiko-premium */
+	if RADIKO_PREMIUM_MAIL != `` && RADIKO_PREMIUM_PASS != `` {
+		u, err := url.Parse(`http://radiko.jp/ap/member/login/login`)
+		if err != nil {
+			return nil, "", err
+		}
+
+		req, err := http.NewRequest("POST", u.String(), nil)
+		if err != nil {
+			return nil, "", err
+		}
+		req.Header.Set("X-Radiko-App", RADIKO_AUTH_HEADER_APP)
+		req.Header.Set("X-Radiko-App-Version", RADIKO_AUTH_HEADER_APP_VERSION)
+		req.Header.Set("X-Radiko-User", RADIKO_AUTH_HEADER_USER)
+		req.Header.Set("X-Radiko-Device", RADIKO_AUTH_HEADER_DEVICE)
+
+		_, err = client.PostForm(u.String(), url.Values{
+			`mail`: []string{RADIKO_PREMIUM_MAIL},
+			`pass`: []string{RADIKO_PREMIUM_PASS},
+		})
+		if err != nil {
+			return nil, "", err
+		}
+	}
+
 	/* Get authtoken from auth1 response header */
 	token, length, offset, err := getAuthToken2(client)
 	if err != nil {

@@ -33,4 +33,8 @@ const (
 	RADIKO_AUTH_HEADER_APP_VERSION_OLD string = `4.0.0`
 	RADIKO_AUTH_HEADER_USER_OLD        string = `test-stream`
 	RADIKO_AUTH_HEADER_DEVICE_OLD      string = `pc`
+
+	// Radiko Premium
+	RADIKO_PREMIUM_MAIL string = ``
+	RADIKO_PREMIUM_PASS string = ``
 )
