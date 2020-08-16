@@ -2,15 +2,12 @@ package onsen
 
 import (
 	"encoding/json"
+    "os/exec"
 	"fmt"
-	"io"
-	"io/ioutil"
+    "log"
 	"net/http"
-	"net/url"
-	"os"
 	"os/user"
-	"path"
-	//"sort"
+	"sort"
 	"strings"
 )
 
@@ -78,7 +75,7 @@ func GetStations() ([]string, error) {
         if err := dec.Decode(&v); err != nil{
             return nil, err
         }
-        append(stations, v.Station)
+        stations = append(stations, v.Station)
     }
     if _, err := dec.Token(); err != nil {
         return nil, err
@@ -92,7 +89,7 @@ func GetStations() ([]string, error) {
 func GetOutputFilename(prog *Program, fileout string) (string, error) {
 	s := fileout
 	if s == "" {
-		s = fmt.Sprintf("%s_%s_%s.mp3", prog.Title, prog.Id, prog.Date)
+		s = fmt.Sprintf("%s_%d_%s.m4a", prog.Title, prog.Id, prog.Date)
 	}
 	if s[0:2] == "~/" {
 		usr, err := user.Current()
@@ -101,33 +98,28 @@ func GetOutputFilename(prog *Program, fileout string) (string, error) {
 		}
 		s = strings.Replace(s, "~", usr.HomeDir, 1)
 	}
+    s = strings.Replace(s, " ", "_", -1)
 	return strings.Replace(s, `/`, `_`, -1), nil
 }
 
 func Download(prog *Program, fileout string) error {
-	res, err := http.Get(prog.Url)
+    fileout, err := GetOutputFilename(prog, fileout)
 	if err != nil {
 		return err
 	}
-	defer res.Body.Close()
 
-	fileout, err = GetOutputFilename(prog, fileout)
+	cmd := exec.Command(
+		`ffmpeg`,
+		`-i`, prog.Url,
+        `-vn`,
+		fileout)
+	fmt.Println(cmd)
+	b, err := cmd.CombinedOutput()
 	if err != nil {
-		return err
+		log.Fatal(err)
 	}
-	if _, err := os.Stat(fileout); err == nil {
-		return fmt.Errorf(`File %s exists.`, fileout)
-	}
-	out, err := os.Create(fileout)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
+	fmt.Printf("%s", b)
 
-	_, err = io.Copy(out, res.Body)
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -144,19 +136,19 @@ func GetProgram(station string) (*Program, error) {
         return nil, err
     }
 
-    prog := &Program{Station: v.Station, Title: v.Name}
-    for content := range(v.Contents) {
-        if conentent.Premium {
+    prog := &Program{Station: v.Station, Title: v.Name.Title}
+    for _, content := range(v.Contents) {
+        if content.Premium {
             continue
         }
         if content.Latest {
             prog.Url = content.Url
             prog.Id = content.Id
-            prog.Date = strings.repalce(content.Date, "/", "_", -1)
+            prog.Date = strings.Replace(content.Date, "/", "_", -1)
         }
     }
 
-	if len(mediaurl) == 0 {
+	if len(prog.Url) == 0 {
 		return prog, fmt.Errorf(station + ` exists, but no media found.`)
 	}
 	return prog, nil
