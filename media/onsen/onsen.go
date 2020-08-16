@@ -10,27 +10,49 @@ import (
 	"os"
 	"os/user"
 	"path"
-	"sort"
+	//"sort"
 	"strings"
 )
 
 const (
-	ONSEN_PROGRAM_JSON = `http://www.onsen.ag/api/shownMovie/shownMovie.json`
-	ONSEN_PROGRAM_API  = `http://www.onsen.ag/data/api`
+	//ONSEN_PROGRAM_JSON = `http://www.onsen.ag/api/shownMovie/shownMovie.json`
+	//ONSEN_PROGRAM_API  = `http://www.onsen.ag/data/api`
+    ONSEN_PROGRAM_JSON = `https://www.onsen.ag/web_api/programs`
 )
 
 type Program struct {
 	Station string
 	Url     string
 	Title   string
-	Count   string
 	Date    string
-	Person  string
+    Id int
+}
+
+// 番組内の各配信
+type OnsenContent struct {
+    Url string `json:"streaming_url"`
+    Title string `json:"title"`
+    Premium bool `json:"premium"`
+    Date string `json:"delivery_date"`
+    Latest bool `json:"latest"`
+    Id int `json:"id"`
+}
+
+type OnsenProgramInfo struct {
+    Title string
+}
+
+// 一つの番組
+type OnsenProgram struct {
+    Id int `json:"id"`
+    Station string `json:"directory_name"`
+    Name OnsenProgramInfo `json:"program_info"`
+    Contents []OnsenContent `json:"contents"`
 }
 
 func (prog *Program) String() string {
-	return fmt.Sprintf("station: %s\ntitle: %s\ndate: %s\ncount: %s\ncast: %s\nurl: %s\n",
-		prog.Station, prog.Title, prog.Date, prog.Count, prog.Person, prog.Url)
+	return fmt.Sprintf("station: %s\ntitle: %s\ndate: %s\nurl: %s\n",
+		prog.Station, prog.Title, prog.Date, prog.Url)
 }
 
 func GetStations() ([]string, error) {
@@ -39,22 +61,38 @@ func GetStations() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	var v map[string][]string
-	if err := json.NewDecoder(res.Body).Decode(&v); err != nil {
-		return nil, err
-	}
-	if _, ok := v[`result`]; !ok {
-		return nil, fmt.Errorf(`key "result" does not exist in the onsen json.`)
-	}
-	result := v[`result`]
-	sort.Strings(result)
-	return result, nil
+
+    type program struct {
+        Station string `json:"directory_name"`
+    }
+
+    var v program
+    var stations []string
+
+    dec := json.NewDecoder(res.Body)
+    // read open bracket
+    if _, err := dec.Token(); err != nil {
+        return nil, err
+    }
+    for dec.More(){
+        if err := dec.Decode(&v); err != nil{
+            return nil, err
+        }
+        append(stations, v.Station)
+    }
+    if _, err := dec.Token(); err != nil {
+        return nil, err
+    }
+
+	sort.Strings(stations)
+
+	return stations, nil
 }
 
 func GetOutputFilename(prog *Program, fileout string) (string, error) {
 	s := fileout
 	if s == "" {
-		s = fmt.Sprintf("%s_%s.mp3", prog.Title, prog.Count)
+		s = fmt.Sprintf("%s_%s_%s.mp3", prog.Title, prog.Id, prog.Date)
 	}
 	if s[0:2] == "~/" {
 		usr, err := user.Current()
@@ -94,81 +132,30 @@ func Download(prog *Program, fileout string) error {
 }
 
 func GetProgram(station string) (*Program, error) {
-	stations, err := GetStations()
-	if err != nil {
-		return nil, err
-	}
-	if !has(stations, station) {
-		return nil, fmt.Errorf(`Station "%s" not found`, station)
-	}
-
-	// Set request to ONSEN API
-	u, err := url.Parse(ONSEN_PROGRAM_API)
-	if err != nil {
-		return nil, err
-	}
-	u.Path = path.Join(u.Path, `getMovieInfo`, station)
-	q := u.Query()
-	q.Set("callback", "callback")
-	u.RawQuery = q.Encode()
-
-	// Get response from API
-	res, err := http.Get(u.String())
+	res, err := http.Get(fmt.Sprintf("%s/%s", ONSEN_PROGRAM_JSON, station))
 	defer res.Body.Close()
 	if err != nil {
 		return nil, err
 	}
-	b, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-	// Cut prefix and suffix characters (prefix: `callback(`, suffix: `);`)
-	text := string(b)
-	text = text[9 : len(text)-3]
+    
+    var v OnsenProgram
+    dec := json.NewDecoder(res.Body)
+    if err := dec.Decode(&v); err != nil{
+        return nil, err
+    }
 
-	// parse json
-	var data map[string]interface{}
-	err = json.Unmarshal([]byte(text), &data)
-	if err != nil {
-		return nil, err
-	}
-	if data == nil {
-		return nil, fmt.Errorf(`No media found`)
-	}
+    prog := &Program{Station: v.Station, Title: v.Name}
+    for content := range(v.Contents) {
+        if conentent.Premium {
+            continue
+        }
+        if content.Latest {
+            prog.Url = content.Url
+            prog.Id = content.Id
+            prog.Date = strings.repalce(content.Date, "/", "_", -1)
+        }
+    }
 
-	// Check if API returns nothing or error json.
-	//fmt.Println(data)
-	if _, ok := data[`err`]; ok {
-		return nil, fmt.Errorf(`Content named %v not found.`, station)
-	}
-
-	title := ``
-	count := ``
-	date := ``
-	person := ``
-	mediaurl := ``
-	if data[`title`] != nil {
-		title = data[`title`].(string)
-	}
-	if data[`count`] != nil {
-		count = data[`count`].(string)
-	}
-	if data[`update`] != nil {
-		YMS := strings.Split(data[`update`].(string), `.`)
-		if len(YMS) > 2 {
-			date = fmt.Sprintf("%s%s%s", YMS[0], YMS[1], YMS[2])
-		}
-	}
-	if data[`personality`] != nil {
-		person = data[`personality`].(string)
-	}
-	if data[`moviePath`] != nil {
-		pathes := data[`moviePath`].(map[string]interface{})
-		if pathes[`pc`] != nil {
-			mediaurl = pathes[`pc`].(string)
-		}
-	}
-	prog := &Program{Station: station, Url: mediaurl, Title: title, Count: count, Date: date, Person: person}
 	if len(mediaurl) == 0 {
 		return prog, fmt.Errorf(station + ` exists, but no media found.`)
 	}
